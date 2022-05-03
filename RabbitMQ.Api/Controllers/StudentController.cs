@@ -24,8 +24,19 @@ namespace ExampleRabbitMQ.Api.Controllers
         {
             try
             {
-                //Inserir na fila
-                var factory = new ConnectionFactory() { HostName = "localhost" };
+                #region Usando Serviço AMQP Rabbbit.MQ externo
+
+                //var _url = "amqps://ezsepkae:qQaqsEwupQIeN_xbzD8q3KupISGcq59f@jackal.rmq.cloudamqp.com/ezsepkae";
+                //var factory = new ConnectionFactory() { Uri = new Uri(_url) };
+
+                #endregion
+
+                #region Usando Servidor Rabbit.MQ local
+
+                var factory = new ConnectionFactory() { HostName="localhost" };
+
+                #endregion
+
                 using (var connection = factory.CreateConnection())
                 using (var channel = connection.CreateModel())
                 {
@@ -35,9 +46,11 @@ namespace ExampleRabbitMQ.Api.Controllers
                                          autoDelete: false,
                                          arguments: null);
 
+                   
                     string message = JsonSerializer.Serialize(order);
                     var body = Encoding.UTF8.GetBytes(message);
 
+                    //Inserir na fila
                     channel.BasicPublish(exchange: "",
                                          routingKey: "studentQueue",
                                          basicProperties: null,
@@ -48,8 +61,7 @@ namespace ExampleRabbitMQ.Api.Controllers
             }
             catch (Exception ex)
             {
-
-                _logger.LogError("Erro ao criar pedido", ex);
+                _logger.LogError("Erro ao cadastrar estudante", ex);
 
                 return new StatusCodeResult(500);
             }
