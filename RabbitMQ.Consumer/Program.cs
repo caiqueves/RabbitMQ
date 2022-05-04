@@ -4,6 +4,7 @@ using System;
 using System.Text;
 using System.Text.Json;
 using ExampleRabbitMQ.Api.Domain;
+using RabbitMQ.Api.Domain;
 
 namespace ExampleRabbitMQ.Consumer
 {
@@ -18,8 +19,10 @@ namespace ExampleRabbitMQ.Consumer
             IModel channel1 = CreateChannel(connection);
 
             DeclareQueue(channel1, "studentQueue");
+            DeclareQueue(channel1, "UnitQueue1");
 
             ConsummerQueue(channel1, "studentQueue");
+            ConsummerQueue(channel1, "UnitQueue1");
 
             Console.WriteLine(" Press [enter] to exit.");
             Console.ReadLine();
@@ -52,6 +55,8 @@ namespace ExampleRabbitMQ.Consumer
 
             return channel;
         }
+       
+        
         public static void DeclareQueue( IModel channel, string nameQueue)
         {
             channel.QueueDeclare(queue: nameQueue,
@@ -60,7 +65,8 @@ namespace ExampleRabbitMQ.Consumer
                                      autoDelete: false,
                                      arguments: null);
         }
-        private static void ConsummerQueue(IModel channel, string nameQueue)
+  
+        private static void ConsummerQueue(IModel channel, string nameQueueProdutor)
         {
             var consumer = new EventingBasicConsumer(channel);
 
@@ -70,8 +76,18 @@ namespace ExampleRabbitMQ.Consumer
                 {
                     var body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
-                    var student = JsonSerializer.Deserialize<Student>(message);
-                    Console.WriteLine($" [x] student {student.StudentId} | {student.Name} |  {student.Age}", message);
+
+
+                    if (nameQueueProdutor.Equals("studentQueue"))
+                    {
+                        var student = JsonSerializer.Deserialize<Student>(message);
+                        Console.WriteLine($"Produtor : {nameQueueProdutor} => student {student.StudentId} | {student.Name} |  {student.Age}", message);
+                    }
+                    else
+                    {
+                        var unit = JsonSerializer.Deserialize<Unit>(message);
+                        Console.WriteLine($"Produtor : {nameQueueProdutor} => Materia : {unit.materia} | nota {unit.nota} |", message);
+                    }
 
                     // Ack sucesso na regra
                     channel.BasicAck(ea.DeliveryTag, false);
@@ -84,7 +100,7 @@ namespace ExampleRabbitMQ.Consumer
 
             };
 
-            channel.BasicConsume(queue: nameQueue,
+            channel.BasicConsume(queue: nameQueueProdutor,
                                  autoAck: false, //Informa que recebeu a mensagem (true = recebeu / false + não recebeu)
                                  consumer: consumer);
             //return consumer;
